@@ -9,16 +9,15 @@ local success = love.filesystem.mount(dir, "root")
 print("trying to mount base directory:", success)
 
 local skinIsSlim = false
-local skinRefresh = false
+local skinRefresh = true
 local skinLighting = true
 local skinLook = false
-local skinPath = nil
-local skinImage = nil
+local skinShowArmor1 = false
+local skinShowArmor2 = false
 
-local alex = nil
-local alexData = nil
-local steve = nil
-local steveData = nil
+local skinImage = nil
+local skinArmor1Image = nil
+local skinArmor2Image = nil
 
 local fps = {}
 fps.mx = 0
@@ -35,99 +34,156 @@ player.rotZ = 0
 player.headRotY = 0
 player.headRotZ = 0
 player.speed = 0
+player.targetSpeed = 0
 
-local head = nil
-local torso = nil
-local right_leg = nil
-local left_leg = nil
-local right_arm_wide = nil
-local left_arm_wide = nil
-local right_arm_slim = nil
-local left_arm_slim = nil
+local head = {}
+local torso = {}
+local right_leg = {}
+local left_leg = {}
+local right_arm = {}
+local left_arm = {}
 
 function updateSkinTexture(imageData, imagePath)
     local r,g,b,a = imageData:getPixel(math.min(51, imageData:getWidth() - 1), math.min(16, imageData:getHeight() - 1))
     skinIsSlim = a <= 0.5
+    refreshSlimWide()
 
-    skinPath = imagePath
     skinImage = love.graphics.newImage(imageData)
     skinImage:setFilter("nearest", "nearest")
 
-    head.texture = skinImage
-    torso.texture = skinImage
-    right_leg.texture = skinImage
-    left_leg.texture = skinImage
-    right_arm_wide.texture = skinImage
-    left_arm_wide.texture = skinImage
-    right_arm_slim.texture = skinImage
-    left_arm_slim.texture = skinImage
-    
-    head.mesh:setTexture(head.texture)
-    torso.mesh:setTexture(torso.texture)
-    right_leg.mesh:setTexture(right_leg.texture)
-    left_leg.mesh:setTexture(left_leg.texture)
-    right_arm_wide.mesh:setTexture(right_arm_wide.texture)
-    left_arm_wide.mesh:setTexture(left_arm_wide.texture)
-    right_arm_slim.mesh:setTexture(right_arm_slim.texture)
-    left_arm_slim.mesh:setTexture(left_arm_slim.texture)
+    setTexture(head, skinImage)
+    setTexture(torso, skinImage)
+    setTexture(right_arm, skinImage)
+    setTexture(left_arm, skinImage)
+    setTexture(left_leg, skinImage)
+    setTexture(right_leg, skinImage)
+end
+
+function setTranslation(models, x, y, z)
+    for k,model in pairs(models) do
+        if (model) then
+            model:setTranslation(x, y, z)
+        end
+    end
+end
+function setRotation(models, rx, ry, rz)
+    for k,model in pairs(models) do
+        if (model) then
+            model:setRotation(rx, ry, rz)
+        end
+    end
+end
+function setTexture(models, texture, key)
+    for k,model in pairs(models) do
+        if (not key or (key and k == key)) then
+            if (model) then
+                texture:setFilter("nearest", "nearest")
+                model.texture = texture
+                model.mesh:setTexture(texture)
+            end
+        end
+    end
+end
+function draw(models, shader, key)
+    for k,model in pairs(models) do
+        if (not key or (key and k == key)) then
+            if (model) then
+                model:draw(shader)
+            end
+        end
+    end
+end
+function refreshSlimWide()
+    if (skinIsSlim) then
+        right_arm.normal_wide = nil
+        left_arm.normal_wide = nil
+        right_arm.normal_slim = g3d.newModel("assets/right_arm_slim.obj", skinImage)
+        left_arm.normal_slim = g3d.newModel("assets/left_arm_slim.obj", skinImage)
+    else
+        right_arm.normal_wide = g3d.newModel("assets/right_arm_wide.obj", skinImage)
+        left_arm.normal_wide = g3d.newModel("assets/left_arm_wide.obj", skinImage)
+        right_arm.normal_slim = nil
+        left_arm.normal_slim = nil
+    end
+
+    setTranslation(right_arm, 0, -0.375, 1.375)
+    setTranslation(left_arm, 0, 0.375, 1.375)
 end
 
 function love.load()
-    steveData = love.image.newImageData("assets/steve.png")
-    steve = love.graphics.newImage(steveData)
-    alexData = love.image.newImageData("assets/alex.png")
-    alex = love.graphics.newImage(alexData)
+    local errorData = love.image.newImageData(2, 2)
+    errorData:mapPixel(function(x,y,r,g,b,a)
+        if (x == 0 and y == 0 or x == 1 and y == 1) then
+            return 1,0,1,1
+        else
+            return 0,0,0,1
+        end
+    end)
 
-    head = g3d.newModel("assets/head.obj", steve)
-    torso = g3d.newModel("assets/torso.obj", steve)
-    right_leg = g3d.newModel("assets/right_leg.obj", steve)
-    left_leg = g3d.newModel("assets/left_leg.obj", steve)
-    right_arm_wide = g3d.newModel("assets/right_arm_wide.obj", steve)
-    left_arm_wide = g3d.newModel("assets/left_arm_wide.obj", steve)
-    right_arm_slim = g3d.newModel("assets/right_arm_slim.obj", steve)
-    left_arm_slim = g3d.newModel("assets/left_arm_slim.obj", steve)
+    local errorImage = love.graphics.newImage(errorData)
 
-    updateSkinTexture(steveData, "assets/steve.png")
+    head.normal = g3d.newModel("assets/head.obj", nil)
+    torso.normal = g3d.newModel("assets/torso.obj", nil)
+    
+    head.armor2 = g3d.newModel("assets/head_armor2.obj", nil)
+    torso.armor1 = g3d.newModel("assets/torso_armor1.obj", nil)
+    torso.armor2 = g3d.newModel("assets/torso_armor2.obj", nil)
+
+    right_leg.normal = g3d.newModel("assets/right_leg.obj", nil)
+    left_leg.normal = g3d.newModel("assets/left_leg.obj", nil)
+
+    right_leg.armor1 = g3d.newModel("assets/right_leg_armor1.obj", nil)
+    right_leg.armor2 = g3d.newModel("assets/right_leg_armor2.obj", nil)
+    left_leg.armor1 = g3d.newModel("assets/left_leg_armor1.obj", nil)
+    left_leg.armor2 = g3d.newModel("assets/left_leg_armor2.obj", nil)
+    right_arm.armor1 = g3d.newModel("assets/right_arm_armor1.obj", nil)
+    right_arm.armor2 = g3d.newModel("assets/right_arm_armor2.obj", nil)
+    left_arm.armor1 = g3d.newModel("assets/left_arm_armor1.obj", nil)
+    left_arm.armor2 = g3d.newModel("assets/left_arm_armor2.obj", nil)
+    setTexture(head, errorImage)
+    setTexture(torso, errorImage)
+    setTexture(right_leg, errorImage)
+    setTexture(left_leg, errorImage)
+    setTexture(right_arm, errorImage)
+    setTexture(left_arm, errorImage)
+    refreshSlimWide()
 
     g3d.camera.lookInDirection(-4, 0, 1.62, 0, 0)
     g3d.camera.fov = math.rad(70)
     g3d.camera.updateProjectionMatrix()
     
-    head:setTranslation(0, 0, 1.5)
-    torso:setTranslation(0, 0, 0.75)
-    right_leg:setTranslation(0.005, -0.125, 0.75)
-    left_leg:setTranslation(0.005, 0.125, 0.75)
-    right_arm_wide:setTranslation(0, -0.375, 1.375)
-    left_arm_wide:setTranslation(0, 0.375, 1.375)
-    right_arm_slim:setTranslation(0, -0.375, 1.375)
-    left_arm_slim:setTranslation(0, 0.375, 1.375)
+    local legXOffset, legYOffset = 0.001, 0.005
+
+    setTranslation(head, 0, 0, 1.5)
+    setTranslation(torso, 0, 0, 0.75)
+    setTranslation(right_leg, 0 + legXOffset, -0.125 + legYOffset, 0.75)
+    setTranslation(left_leg, 0 + legXOffset, 0.125 - legYOffset, 0.75)
+    setTranslation(right_arm, 0, -0.375, 1.375)
+    setTranslation(left_arm, 0, 0.375, 1.375)
 
     love.graphics.setBackgroundColor(0.1, 0.1, 0.1)
 end
 
 function love.update(dt)
+    player.speed = player.targetSpeed
+
+    -- walk animation
+    local swingRot = math.rad(60)
+    local rightSwing = math.sin(love.timer.getTime() * player.speed) * swingRot
+    local leftSwing = math.sin(love.timer.getTime() * player.speed + math.pi) * swingRot
+    setRotation(right_leg, 0, leftSwing, 0)
+    setRotation(left_leg, 0, rightSwing, 0)
+
     -- arms idle
     local armRot = 0.05
     local rightArmRotX = (math.cos(love.timer.getTime() + 3) * 0.5 - 0.5) * armRot
-    local rightArmRotY = math.sin(love.timer.getTime() + 3) * armRot
+    local rightArmRotY = math.sin(love.timer.getTime() + 3) * armRot + rightSwing
     local leftArmRotX = (math.sin(love.timer.getTime()) * 0.5 + 0.5) * armRot
-    local leftArmRotY = math.cos(love.timer.getTime()) * armRot
+    local leftArmRotY = math.cos(love.timer.getTime()) * armRot + leftSwing
 
-    right_arm_wide:setRotation(rightArmRotX, rightArmRotY, 0)
-    right_arm_slim:setRotation(rightArmRotX, rightArmRotY, 0)
-    left_arm_wide:setRotation(leftArmRotX, leftArmRotY, 0)
-    left_arm_slim:setRotation(leftArmRotX, leftArmRotY, 0)
+    setRotation(right_arm, rightArmRotX, rightArmRotY, 0)
+    setRotation(left_arm, leftArmRotX, leftArmRotY, 0)
 
-    -- walk animation
-    local swingRot = 1
-    local rightSwing = math.sin(love.timer.getTime() * player.speed) * swingRot
-    local leftSwing = math.sin(love.timer.getTime() * player.speed + math.pi) * swingRot
-    right_leg:setRotation(0, leftSwing, 0)
-    left_leg:setRotation(0, rightSwing, 0)
-    right_arm_wide:setRotation(right_arm_wide.rotation[1], right_arm_wide.rotation[2] + rightSwing, right_arm_wide.rotation[3])
-    right_arm_slim:setRotation(right_arm_slim.rotation[1], right_arm_slim.rotation[2] + rightSwing, right_arm_slim.rotation[3])
-    left_arm_wide:setRotation(left_arm_wide.rotation[1], left_arm_wide.rotation[2] + leftSwing, left_arm_wide.rotation[3])
-    left_arm_slim:setRotation(left_arm_slim.rotation[1], left_arm_slim.rotation[2] + leftSwing, left_arm_slim.rotation[3])
 
     -- head look
     if (skinLook) then
@@ -135,7 +191,7 @@ function love.update(dt)
         player.headRotZ = fps.yaw
     end
 
-    head:setRotation(0, player.headRotY, math.sin(player.headRotZ))
+    setRotation(head, 0, player.headRotY, math.sin(player.headRotZ))
 
     -- camera
     if (love.mouse.isDown(2)) then
@@ -209,29 +265,55 @@ function love.keypressed(key)
         skinRefresh = not skinRefresh
     elseif (key == "t") then
         skinIsSlim = not skinIsSlim
+        refreshSlimWide()
     elseif (key == "y") then
         skinLighting = not skinLighting
     elseif (key == "f") then
         skinLook = not skinLook
     elseif (key == "g") then
-        if (player.speed <= 0) then
-            player.speed = 5
-        else
-            player.speed = 0
-        end
+        player.targetSpeed = player.targetSpeed <= 0 and 10 or 0
+    elseif (key == "c") then
+        skinShowArmor1 = not skinShowArmor1
+    elseif (key == "v") then
+        skinShowArmor2 = not skinShowArmor2
     end
 end
 
 function love.focus(f)
     if f then
         if (skinRefresh) then
-            local path = "root/skin.png"
-            local skin = love.filesystem.getInfo(path)
-
             print("refreshing:", path, skin)
-            
+
+            local path = "root/"
+
+            local skinPath = path .. "skin.png"
+            local skin = love.filesystem.getInfo(skinPath)
             if (skin) then
-                updateSkinTexture(love.image.newImageData(path), path)
+                updateSkinTexture(love.image.newImageData(skinPath))
+            end
+
+            local armor1Path = path .. "armor_leggings.png"
+            local armor1 = love.filesystem.getInfo(armor1Path)
+            local armor2Path = path .. "armor.png"
+            local armor2 = love.filesystem.getInfo(armor2Path)
+            
+            if (armor1) then
+                skinArmor1Image = love.graphics.newImage(armor1Path)
+                setTexture(right_arm, skinArmor1Image, "armor1")
+                setTexture(left_arm, skinArmor1Image, "armor1")
+                setTexture(right_leg, skinArmor1Image, "armor1")
+                setTexture(left_leg, skinArmor1Image, "armor1")
+                setTexture(torso, skinArmor1Image, "armor1")
+                setTexture(head, skinArmor1Image, "armor1")
+            end
+            if (armor2) then
+                skinArmor2Image = love.graphics.newImage(armor2Path)
+                setTexture(right_arm, skinArmor2Image, "armor2")
+                setTexture(left_arm, skinArmor2Image, "armor2")
+                setTexture(right_leg, skinArmor2Image, "armor2")
+                setTexture(left_leg, skinArmor2Image, "armor2")
+                setTexture(torso, skinArmor2Image, "armor2")
+                setTexture(head, skinArmor2Image, "armor2")
             end
         end
     end
@@ -247,25 +329,40 @@ function love.filedropped(file)
 		local img = love.image.newImageData(fileData)
 
         updateSkinTexture(img, filename)
+        skinRefresh = false
 	end
 end
 
 function love.draw()
     love.graphics.setColor(1, 1, 1, 1)
     shader:send("lighting", skinLighting)
-    head:draw(shader)
-    torso:draw(shader)
-    right_leg:draw(shader)
-    left_leg:draw(shader)
-    if (not skinIsSlim) then
-        right_arm_wide:draw(shader)
-        left_arm_wide:draw(shader)
-    else
-        right_arm_slim:draw(shader)
-        left_arm_slim:draw(shader)
+    draw(head, shader, "normal")
+    draw(torso, shader, "normal")
+    draw(right_leg, shader, "normal")
+    draw(left_leg, shader, "normal")
+    draw(right_arm, shader, "normal_wide")
+    draw(right_arm, shader, "normal_slim")
+    draw(left_arm, shader, "normal_wide")
+    draw(left_arm, shader, "normal_slim")
+
+    if (skinShowArmor1) then
+        draw(head, shader, "armor1")
+        draw(torso, shader, "armor1")
+        draw(right_leg, shader, "armor1")
+        draw(left_leg, shader, "armor1")
+        draw(right_arm, shader, "armor1")
+        draw(left_arm, shader, "armor1")
+    end
+    if (skinShowArmor2) then
+        draw(head, shader, "armor2")
+        draw(torso, shader, "armor2")
+        draw(right_leg, shader, "armor2")
+        draw(left_leg, shader, "armor2")
+        draw(right_arm, shader, "armor2")
+        draw(left_arm, shader, "armor2")
     end
 
-    if (skinImage and skinPath) then
+    if (skinImage) then
         local mx, my = love.mouse.getPosition()
         if (mx <= 128 + 8 and my <= 128 + 32 + 8 and not love.mouse.getRelativeMode()) then
             love.graphics.setColor(1, 1, 1, 1)
@@ -273,16 +370,22 @@ function love.draw()
             love.graphics.setColor(1, 1, 1, 0.1)
         end
 
-        love.graphics.print(skinPath)
         love.graphics.draw(skinImage, 0, 32, 0, 2, 2)
     end
 
+    local textHeight = love.graphics.getFont():getHeight()
+    local text = ""
+    text = text .. "refresh (r): " .. tostring(skinRefresh) .. "\n"
+    text = text .. "slim (t): " .. tostring(skinIsSlim) .. "\n"
+    text = text .. "lighting (y): " .. tostring(skinLighting) .. "\n"
+    text = text .. "head look (f): " .. tostring(skinLook) .. "\n"
+    text = text .. "walk (g): " .. tostring(player.speed) .. "/" .. tostring(player.targetSpeed) .. "\n"
+    text = text .. "armor layer 1 (c): " .. tostring(skinShowArmor1) .. "\n"
+    text = text .. "armor layer 2 (v): " .. tostring(skinShowArmor2) .. "\n"
+
     love.graphics.setColor(1, 1, 1, 0.5)
     love.graphics.print("v1", love.graphics.getWidth() - 24, love.graphics.getHeight() - 24)
-    love.graphics.print("drag and drop a PNG file to this window, or edit 'skin.png' while having refresh on", 300, 0)
-    love.graphics.print("walk (g): " .. tostring(player.speed), 0, love.graphics.getHeight() - 80)
-    love.graphics.print("head look (f): " .. tostring(skinLook), 0, love.graphics.getHeight() - 64)
-    love.graphics.print("lighting (y): " .. tostring(skinLighting), 0, love.graphics.getHeight() - 48)
-    love.graphics.print("refresh (r): " .. tostring(skinRefresh), 0, love.graphics.getHeight() - 32)
-    love.graphics.print("slim (t): " .. tostring(skinIsSlim), 0, love.graphics.getHeight() - 16)
+    love.graphics.print("you can drag and drop a PNG file to this window, or edit 'skin.png'", 300, 0)
+
+    love.graphics.print(text, 10, love.graphics.getHeight() - textHeight * 7 - 10)
 end
