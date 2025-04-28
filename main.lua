@@ -384,7 +384,7 @@ function love.draw()
     text = text .. "armor layer 2 (v): " .. tostring(skinShowArmor2) .. "\n"
 
     love.graphics.setColor(1, 1, 1, 0.5)
-    love.graphics.print("v1", love.graphics.getWidth() - 24, love.graphics.getHeight() - 24)
+    love.graphics.print("v2", love.graphics.getWidth() - 24, love.graphics.getHeight() - 24)
     love.graphics.print("you can drag and drop a PNG file to this window, or edit 'skin.png'", 300, 0)
 
     love.graphics.print(text, 10, love.graphics.getHeight() - textHeight * 7 - 10)
