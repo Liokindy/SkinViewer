@@ -127,4 +127,57 @@ function matrix:setViewMatrix(eye, target, up)
     self[13], self[14], self[15], self[16] = 0, 0, 0, 1
 end
 
+-- THIS IS NOT MY ("My" -> Liokindy) WORK
+-- I HAVE NO IDEA WHAT THIS DOES
+-- CREDITS: Hoarder's Horrible House of Stuff by alesan99
+
+-- returns a transpose of the given matrix
+function TransposeMatrix(m)
+    return {
+        GetMatrixXY(m, 1,1), GetMatrixXY(m, 1,2), GetMatrixXY(m, 1,3), GetMatrixXY(m, 1,4),
+        GetMatrixXY(m, 2,1), GetMatrixXY(m, 2,2), GetMatrixXY(m, 2,3), GetMatrixXY(m, 2,4),
+        GetMatrixXY(m, 3,1), GetMatrixXY(m, 3,2), GetMatrixXY(m, 3,3), GetMatrixXY(m, 3,4),
+        GetMatrixXY(m, 4,1), GetMatrixXY(m, 4,2), GetMatrixXY(m, 4,3), GetMatrixXY(m, 4,4),
+    }
+end
+
+-- i find rows and columns confusing, so i use coordinate pairs instead
+-- this returns a value of a matrix at a specific coordinate
+function GetMatrixXY(matrix, x,y)
+    return matrix[x + (y-1)*4]
+end
+
+--from Cirno's Perfect Math Library
+function InvertMatrix(mat)
+	local out = newMatrix()
+	out[1]  =  mat[6] * mat[11] * mat[16] - mat[6] * mat[12] * mat[15] - mat[10] * mat[7] * mat[16] + mat[10] * mat[8] * mat[15] + mat[14] * mat[7] * mat[12] - mat[14] * mat[8] * mat[11]
+	out[2]  = -mat[2] * mat[11] * mat[16] + mat[2] * mat[12] * mat[15] + mat[10] * mat[3] * mat[16] - mat[10] * mat[4] * mat[15] - mat[14] * mat[3] * mat[12] + mat[14] * mat[4] * mat[11]
+	out[3]  =  mat[2] * mat[7]  * mat[16] - mat[2] * mat[8]  * mat[15] - mat[6]  * mat[3] * mat[16] + mat[6]  * mat[4] * mat[15] + mat[14] * mat[3] * mat[8]  - mat[14] * mat[4] * mat[7]
+	out[4]  = -mat[2] * mat[7]  * mat[12] + mat[2] * mat[8]  * mat[11] + mat[6]  * mat[3] * mat[12] - mat[6]  * mat[4] * mat[11] - mat[10] * mat[3] * mat[8]  + mat[10] * mat[4] * mat[7]
+	out[5]  = -mat[5] * mat[11] * mat[16] + mat[5] * mat[12] * mat[15] + mat[9]  * mat[7] * mat[16] - mat[9]  * mat[8] * mat[15] - mat[13] * mat[7] * mat[12] + mat[13] * mat[8] * mat[11]
+	out[6]  =  mat[1] * mat[11] * mat[16] - mat[1] * mat[12] * mat[15] - mat[9]  * mat[3] * mat[16] + mat[9]  * mat[4] * mat[15] + mat[13] * mat[3] * mat[12] - mat[13] * mat[4] * mat[11]
+	out[7]  = -mat[1] * mat[7]  * mat[16] + mat[1] * mat[8]  * mat[15] + mat[5]  * mat[3] * mat[16] - mat[5]  * mat[4] * mat[15] - mat[13] * mat[3] * mat[8]  + mat[13] * mat[4] * mat[7]
+	out[8]  =  mat[1] * mat[7]  * mat[12] - mat[1] * mat[8]  * mat[11] - mat[5]  * mat[3] * mat[12] + mat[5]  * mat[4] * mat[11] + mat[9]  * mat[3] * mat[8]  - mat[9]  * mat[4] * mat[7]
+	out[9]  =  mat[5] * mat[10] * mat[16] - mat[5] * mat[12] * mat[14] - mat[9]  * mat[6] * mat[16] + mat[9]  * mat[8] * mat[14] + mat[13] * mat[6] * mat[12] - mat[13] * mat[8] * mat[10]
+	out[10] = -mat[1] * mat[10] * mat[16] + mat[1] * mat[12] * mat[14] + mat[9]  * mat[2] * mat[16] - mat[9]  * mat[4] * mat[14] - mat[13] * mat[2] * mat[12] + mat[13] * mat[4] * mat[10]
+	out[11] =  mat[1] * mat[6]  * mat[16] - mat[1] * mat[8]  * mat[14] - mat[5]  * mat[2] * mat[16] + mat[5]  * mat[4] * mat[14] + mat[13] * mat[2] * mat[8]  - mat[13] * mat[4] * mat[6]
+	out[12] = -mat[1] * mat[6]  * mat[12] + mat[1] * mat[8]  * mat[10] + mat[5]  * mat[2] * mat[12] - mat[5]  * mat[4] * mat[10] - mat[9]  * mat[2] * mat[8]  + mat[9]  * mat[4] * mat[6]
+	out[13] = -mat[5] * mat[10] * mat[15] + mat[5] * mat[11] * mat[14] + mat[9]  * mat[6] * mat[15] - mat[9]  * mat[7] * mat[14] - mat[13] * mat[6] * mat[11] + mat[13] * mat[7] * mat[10]
+	out[14] =  mat[1] * mat[10] * mat[15] - mat[1] * mat[11] * mat[14] - mat[9]  * mat[2] * mat[15] + mat[9]  * mat[3] * mat[14] + mat[13] * mat[2] * mat[11] - mat[13] * mat[3] * mat[10]
+	out[15] = -mat[1] * mat[6]  * mat[15] + mat[1] * mat[7]  * mat[14] + mat[5]  * mat[2] * mat[15] - mat[5]  * mat[3] * mat[14] - mat[13] * mat[2] * mat[7]  + mat[13] * mat[3] * mat[6]
+	out[16] =  mat[1] * mat[6]  * mat[11] - mat[1] * mat[7]  * mat[10] - mat[5]  * mat[2] * mat[11] + mat[5]  * mat[3] * mat[10] + mat[9]  * mat[2] * mat[7]  - mat[9]  * mat[3] * mat[6]
+
+	local det = mat[1] * out[1] + mat[2] * out[5] + mat[3] * out[9] + mat[4] * out[13]
+
+	if det == 0 then return mat end
+
+	det = 1 / det
+
+	for i = 1, 16 do
+		out[i] = out[i] * det
+	end
+
+	return out
+end
+
 return newMatrix

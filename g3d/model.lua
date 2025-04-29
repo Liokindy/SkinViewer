@@ -138,6 +138,7 @@ end
 -- update the model's transformation matrix
 function model:updateMatrix()
     self.matrix:setTransformationMatrix(self.translation, self.rotation, self.scale)
+    self.matrixInverse = TransposeMatrix(InvertMatrix(self.matrix))
 end
 
 -- draw the model
@@ -147,6 +148,8 @@ function model:draw(shader)
     shader:send("modelMatrix", self.matrix)
     shader:send("viewMatrix", camera.viewMatrix)
     shader:send("projectionMatrix", camera.projectionMatrix)
+	shader:send("modelMatrixInverse", self.matrixInverse)
+
     if shader:hasUniform "isCanvasEnabled" then
         shader:send("isCanvasEnabled", love.graphics.getCanvas() ~= nil)
     end
